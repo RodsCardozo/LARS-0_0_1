@@ -5,7 +5,7 @@ Codigo para integracao das equacoes do movimento do satelite
 incluindo a atitude dele. Resolver o sistema de equacoes diferenciais utilizando
 o solver odint. *ver como essa biblioteca faz a integracao.
 '''
-def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu, anomalia_verdadeira, inclinacao, num_orbitas, delt, psi, teta, phi, psip, tetap, phip):
+def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu, anomalia_verdadeira, inclinacao, num_orbitas, delt, psi, teta, phi, psip, tetap, phip, massa, largura, comprimento, altura, omegap):
 
     """
     & Semi_eixo = altitude no periapse da orbita
@@ -30,7 +30,7 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
     from datetime import timedelta
     from nrlmsise00 import msise_model
     from periodo_orbital import periodo_orbital
-    def propagador(q, t, Rho, velocidade, massa, CD, posicao, Area_transversal):  # funcao para integrar
+    def propagador(q, t, Rho, velocidade, massa, largura, comprimento, altura, CD, posicao, Area_transversal):  # funcao para integrar
         import numpy as np
         mu = 398600
         J2 = 1.08263e-3
@@ -38,9 +38,9 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
         rho = Rho
         r = posicao
         m = float(massa)  # massa do cubesat
-        a = float(0.1)  # comprimento do sat
-        b = float(0.1)  # largura do sat
-        c = float(0.2)  # altura do sat
+        a = float(largura)  # comprimento do sat
+        b = float(comprimento)  # largura do sat
+        c = float(altura)  # altura do sat
         Ix3 = (m / 12) * (b ** 2 + c ** 2)  # momento de inercia na direcao x
         Iy3 = (m / 12) * (a ** 2 + c ** 2)  # momento de inercia na direcao y
         Iz3 = (m / 12) * (a ** 2 + b ** 2)  # momento de inercia na direcao z
@@ -84,14 +84,14 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
 
     # condicoes iniciais
 
-    Rp = float(semi_eixo)  # semi eixo maior
-    rp0 = Rp
+    SMA = float(semi_eixo)  # semi eixo maior
     ecc0 = float(excentricidade)  # ecentricidade da orbita
     Raan0 = np.radians(float(Raan))  # ascencao direita do nodo ascendente
     arg_per0 = np.radians(float(argumento_perigeu))  # argumento do perigeu
     true_anomaly0 = np.radians(float(anomalia_verdadeira))  # anomalia verdadeira
     inc0 = np.radians(float(inclinacao))  # inclinacao
-    T_orb = periodo_orbital(Rp)
+    rp0 = SMA*(1-ecc0)
+    T_orb = periodo_orbital(SMA)
     mu = 398600
     J2 = 1.08263e-3
     R_terra = 6371
@@ -114,28 +114,70 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
     q3 = float((np.sin(psi / 2) * np.cos(teta / 2) * np.cos(phi / 2) + np.cos(psi / 2) * np.cos(teta / 2) * np.sin(
                 phi / 2)))  # quaternion q3
 
+    x_rot = np.cos(argumento_perigeu) * np.cos(Raan) - np.cos(inclinacao) * np.sin(argumento_perigeu) * np.sin(Raan)
+    y_rot = np.cos(argumento_perigeu) * np.sin(Raan) + np.cos(inclinacao) * np.sin(argumento_perigeu) * np.cos(Raan)
+    z_rot = np.sin(inclinacao) * np.sin(argumento_perigeu)
+    Posi_ini = int(rp0)*[x_rot, y_rot, z_rot]
+    lamb_e = (np.arctan2(Posi_ini[1], Posi_ini[0]))
+    lat = []
+    long = []
     # comeco da integracao
 
+    DELTAT = delt
     mu = 398600
     J2 = 1.08263e-3
     R_terra = 6371
     Time_step = delt
-    passo = 10000
+    passo = 1000
     ini_date = data
     n = num_orbitas
     T = T_orb*n
     t = np.linspace(0, Time_step, passo)
+    data = []
     solution = []
-    posicao = (h0**2/mu)*(1/(1-ecc0*np.cos(true_anomaly0)))
+
     while delt < T:
         qi = [h0, ecc0, true_anomaly0, Raan0, inc0, arg_per0, q0, q1, q2, q3, wx3_i, wy3_i, wz3_i]
         altitude = rp0 - R_terra
-        Rho = rho(ini_date, altitude, 0, 0)
+        xp = (h0 ** 2 / mu) * (1 / (1 + ecc0 * np.cos(true_anomaly0))) * np.cos(true_anomaly0)
+        yp = (h0 ** 2 / mu) * (1 / (1 + ecc0 * np.cos(true_anomaly0))) * np.sin(true_anomaly0)
+        zp = 0
+        X_ECI = ((np.cos(Raan0) * np.cos(arg_per0) - np.sin(Raan0) * np.sin(arg_per0) * np.cos(inc0)) * xp
+                 + (-np.cos(Raan0) * np.sin(arg_per0) - np.sin(Raan0) * np.cos(inc0) * np.cos(arg_per0)) * yp
+                 + np.sin(Raan0) * np.sin(inc0) * zp)
+
+        Y_ECI = ((np.sin(Raan0) * np.cos(arg_per0) + np.cos(Raan0) * np.cos(inc0) * np.sin(arg_per0)) * xp
+                 + (-np.sin(Raan0)*np.sin(arg_per0) + np.cos(Raan0)*np.cos(inc0)*np.cos(arg_per0)) * yp
+                 - np.cos(Raan0)*np.sin(inc0) * zp)
+
+        Z_ECI = (np.sin(inc0) * np.sin(arg_per0) * xp
+                 + np.sin(inc0) * np.cos(arg_per0) * yp
+                 + np.cos(inc0)*zp)
+
+        posicao = np.sqrt(X_ECI ** 2 + Y_ECI ** 2 + Z_ECI ** 2)
+
+        Lamb = lamb_e - ((2*np.pi)/(24*60*60))*delt
+
+        X_rot = np.cos(arg_per0) * np.cos(Lamb) - np.cos(inc0) * np.sin(arg_per0) * np.sin(Lamb)
+        Y_rot = np.cos(arg_per0) * np.sin(Lamb) + np.cos(inc0) * np.sin(arg_per0) * np.cos(Lamb)
+        Z_rot = np.sin(inc0) * np.sin(arg_per0)
+        r = posicao*np.array([X_rot, Y_rot, Z_rot])
+
+        latitude = np.degrees((np.arctan2(r[2], np.sqrt(r[0] ** 2 + r[1] ** 2))))
+        longitude = np.degrees((np.arctan2(r[1], r[0])))
+
+        lat.append(latitude)
+        long.append(longitude)
+
+        Rho = rho(ini_date, altitude, latitude, longitude)
         velocidade = (mu/h0)*np.sqrt(np.sin(true_anomaly0)**2 + (ecc0 + np.cos(true_anomaly0))**2)
-        massa = 3.0
+        massa = massa
         CD = 2.2
         Area_transversal = 0.1*0.1
-        sol = odeint(propagador, qi, t, args=(Rho, velocidade, massa, CD, posicao, Area_transversal))
+        largura = largura
+        comprimento = comprimento
+        altura = altura
+        sol = odeint(propagador, qi, t, args=(Rho, velocidade, massa, largura, comprimento, altura, CD, posicao, Area_transversal))
         solution.append(sol[passo - 1])
         h0 = sol[passo-1][0]
         ecc0 = sol[passo-1][1]
@@ -154,6 +196,7 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
         delt = delt + Time_step
         final_date = timedelta(seconds=Time_step)
         ini_date = ini_date + final_date
+        data.append(ini_date)
 
     solucao = pd.DataFrame(solution, columns=['h', 'ecc', 'anomalia_verdadeira', 'raan', 'inc', 'arg_per', 'q0', 'q1', 'q2', 'q3', 'wx3', 'wy3', 'wz3'])
     solucao['X_perifocal'] = (solucao['h']**2/mu)*(1/(1 + solucao['ecc']*np.cos(solucao['anomalia_verdadeira'])))*np.cos(solucao['anomalia_verdadeira'])
@@ -182,6 +225,31 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
                         + np.sin(solucao['inc'])*np.cos(solucao['arg_per'])*solucao['Y_perifocal']
                         + np.cos(solucao['inc'])*solucao['Z_perifocal'])
 
+    df1 = pd.DataFrame(lat, columns=['latitude'])
+    df = pd.concat([df, df1], axis=1)
+
+    df2 = pd.DataFrame(long, columns=['longitude'])
+    df = pd.concat([df, df2], axis=1)
+
+    df3 = pd.DataFrame(data, columns=['Data'])
+    df = pd.concat([df, df3], axis=1)
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.basemap import Basemap
+
+    f = plt.figure(figsize=(10, 7.5))
+    m = Basemap(projection="mill", lon_0=0)
+
+    m.drawcoastlines()
+    m.drawparallels(np.arange(-90, 91, 30), labels=[1, 0, 0, 0])
+    m.drawmeridians(np.arange(-180, 181, 60), labels=[0, 0, 0, 1])
+    lon = df['longitude']
+    lat = df['latitude']
+    x, y = m(lon, lat)
+    m.plot(x, y, color="red", latlon=False, marker='.', linestyle='None')
+    plt.show()
+
     '''import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
@@ -193,4 +261,5 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
     plt.show()
     solucao['final'] = 1'''
     solucao.to_csv('solver.csv',sep=',')
+    df.to_csv('dados_ECI.csv', sep=',')
     return df

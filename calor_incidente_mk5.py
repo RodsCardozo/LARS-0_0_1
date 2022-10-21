@@ -30,11 +30,11 @@ Ic = (massa / 12) * (largura ** 2 + comprimento ** 2)  # momento de inercia na d
 
 # orbtia a ser analisada
 
-SMA = 6000 # semi eixo maior
-ecc = float(0.001)  # ecentricidade da orbita
-Raan = float(0.001)  # ascencao direita do nodo ascendente
-arg_per = (float(0.001))  # argumento do perigeu
-true_anomaly = (float(0.001))  # anomalia verdadeira
+SMA = 7000 # semi eixo maior
+ecc = float(0.002)  # ecentricidade da orbita
+Raan = float(0.0)  # ascencao direita do nodo ascendente
+arg_per = (float(0.0))  # argumento do perigeu
+true_anomaly = (float(0.0))  # anomalia verdadeira
 inc = (float(63.5))  # inclinacao
 mu = 398600  # constante gravitacional da terra
 J2 = 1.08263e-3  # zona harmonica 2
@@ -45,12 +45,12 @@ T_orbita = periodo_orbital.periodo_orbital(SMA)
 PSIP = 0.0
 TETAP = 0.0
 PHIP = (2 * np.pi) / T_orbita
-psi0 = 0.0
+psi0 = Raan
 teta0 = inc
 phi0 = true_anomaly
 data = datetime(2022, 5, 10, 18, 0, 0)
 delt = 10
-omegap = -1.5 * ((np.sqrt(mu) * J2 * Raio_terra ** 2) / ((1 - ecc ** 2) ** 2 * rp ** (7 / 2))) * np.cos(np.radians(inc))
+omegap = -1.5 * ((np.sqrt(mu) * J2 * Raio_terra ** 2) / ((1 - ecc ** 2) ** 2 * SMA ** (7 / 2))) * np.cos(np.radians(inc))
 print(omegap)
 # propagador orbital
 
@@ -59,17 +59,17 @@ prop_orb = propagador_orbital(data, SMA, ecc, Raan, arg_per, true_anomaly, inc, 
 
 # Intensidade radiante do sol e terra e valores de emissividade
 
-Is = 1367.0
-Ir = 267.0
-e = 1.0
-ai = 1.0
-gama = 0.3
+Is = 1367.0 # radiacao solar
+Ir = 267.0 # radiacao IR Terra
+e = 1.0 # emissividade Terra
+ai = 1.0 # absortividade do satelite
+gama = 0.3 # refletividade da Terra
 
 Vs = np.array([1, 0, 0]) # vetor solar
 
 # divisao da terra em elementos de area utilizando um icosaedro
 
-nu = 10
+nu = 20
 vertices, faces = icosphere.icosphere(nu)
 center = []
 for i in range(0, len(faces), 1):
@@ -278,6 +278,7 @@ for i in tqdm(range(0, len(vetor_posicao), 1), colour='green'):
             if C_aik1 > 0 and C_aek1 > 0 and C_bek > 0:
                 Balb = float(1.0)
                 Halb1 = Halb1 + (As * ((C_aek1 * C_bek * C_aik1) / (np.pi * np.linalg.norm(rhok1) ** 2)) * Balb)
+
             else:
                 Balb = float(0.0)
 
@@ -304,6 +305,7 @@ for i in tqdm(range(0, len(vetor_posicao), 1), colour='green'):
                 Balb = float(1.0)
 
                 Halb3 = Halb3 + (As * ((C_aek3 * C_bek * C_aik3) / (np.pi * np.linalg.norm(rhok3) ** 2)) * Balb)
+
 
             else:
                 Balb = float(0.0)
@@ -349,22 +351,22 @@ for i in tqdm(range(0, len(vetor_posicao), 1), colour='green'):
 
                 Halb6 = Halb6 + (As * ((C_aek6 * C_bek * C_aik6) / (np.pi * np.linalg.norm(rhok6) ** 2)) * Balb)
 
-    Qalb1.append(ai * gama * Is * Halb1)
+    Qalb1.append(Halb1)
     Halb1 = 0
 
-    Qalb2.append(ai * gama * Is * Halb2)
+    Qalb2.append(Halb2)
     Halb2 = 0
 
-    Qalb3.append(ai * gama * Is * Halb3)
+    Qalb3.append(Halb3)
     Halb3 = 0
 
-    Qalb4.append(ai * gama * Is * Halb4)
+    Qalb4.append(Halb4)
     Halb4 = 0
 
-    Qalb5.append(ai * gama * Is * Halb5)
+    Qalb5.append(Halb5)
     Halb5 = 0
 
-    Qalb6.append(ai * gama * Is * Halb6)
+    Qalb6.append(Halb6)
     Halb6 = 0
 
 
@@ -487,22 +489,22 @@ for i in tqdm(range(0, len(vetor_posicao), 1), colour='cyan'):
 
                 Hrad6 = Hrad6 + (As * ((C_aek6 * C_aik6) / (np.pi * np.linalg.norm(Rhok6) ** 2)) * Balb)
 
-    Qrad1.append(e * Ir * (Hrad1))
+    Qrad1.append((Hrad1))
     Hrad1 = 0
 
-    Qrad2.append(e * Ir * (Hrad2))
+    Qrad2.append((Hrad2))
     Hrad2 = 0
 
-    Qrad3.append(e * Ir * (Hrad3))
+    Qrad3.append((Hrad3))
     Hrad3 = 0
 
-    Qrad4.append(e * Ir * (Hrad4))
+    Qrad4.append((Hrad4))
     Hrad4 = 0
 
-    Qrad5.append(e * Ir * (Hrad5))
+    Qrad5.append((Hrad5))
     Hrad5 = 0
 
-    Qrad6.append(e * Ir * (Hrad6))
+    Qrad6.append((Hrad6))
     Hrad6 = 0
 
 rad_sol = []

@@ -5,7 +5,8 @@ Codigo para integracao das equacoes do movimento do satelite
 incluindo a atitude dele. Resolver o sistema de equacoes diferenciais utilizando
 o solver odint. *ver como essa biblioteca faz a integracao.
 '''
-def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu, anomalia_verdadeira, inclinacao, num_orbitas, delt, psi, teta, phi, psip, tetap, phip, massa, largura, comprimento, altura, omegap):
+def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu, anomalia_verdadeira,
+        inclinacao, num_orbitas, delt, psi, teta, phi, psip, tetap, phip, massa, largura, comprimento, altura, omegap):
 
     """
     & Semi_eixo = altitude no periapse da orbita
@@ -24,6 +25,7 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
 
     """
     import numpy as np
+    import poliastro as pd
     import pandas as pd
     from scipy.integrate import odeint
     from datetime import datetime
@@ -117,8 +119,11 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
     x_rot = np.cos(argumento_perigeu) * np.cos(Raan) - np.cos(inclinacao) * np.sin(argumento_perigeu) * np.sin(Raan)
     y_rot = np.cos(argumento_perigeu) * np.sin(Raan) + np.cos(inclinacao) * np.sin(argumento_perigeu) * np.cos(Raan)
     z_rot = np.sin(inclinacao) * np.sin(argumento_perigeu)
+
     Posi_ini = int(rp0)*[x_rot, y_rot, z_rot]
+
     lamb_e = (np.arctan2(Posi_ini[1], Posi_ini[0]))
+
     lat = []
     long = []
     # comeco da integracao
@@ -128,7 +133,7 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
     J2 = 1.08263e-3
     R_terra = 6371
     Time_step = delt
-    passo = 1000
+    passo = 10000
     ini_date = data
     n = num_orbitas
     T = T_orb*n
@@ -153,15 +158,25 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
         Z_ECI = (np.sin(inc0) * np.sin(arg_per0) * xp
                  + np.sin(inc0) * np.cos(arg_per0) * yp
                  + np.cos(inc0)*zp)
+        posicao = np.linalg.norm(np.array([X_ECI, Y_ECI, Z_ECI]))
 
-        posicao = np.sqrt(X_ECI ** 2 + Y_ECI ** 2 + Z_ECI ** 2)
+        RAAN = lamb_e - ((2*np.pi)/(24*3600 + 56*60 + 4))*DELTAT
 
-        Lamb = lamb_e - ((2*np.pi)/(24*60*60))*delt
+        lamb_e = RAAN
 
-        X_rot = np.cos(arg_per0) * np.cos(Lamb) - np.cos(inc0) * np.sin(arg_per0) * np.sin(Lamb)
-        Y_rot = np.cos(arg_per0) * np.sin(Lamb) + np.cos(inc0) * np.sin(arg_per0) * np.cos(Lamb)
-        Z_rot = np.sin(inc0) * np.sin(arg_per0)
-        r = posicao*np.array([X_rot, Y_rot, Z_rot])
+        X_ECEF = ((np.cos(RAAN) * np.cos(arg_per0) - np.sin(RAAN) * np.sin(arg_per0) * np.cos(inc0)) * xp
+                 + (-np.cos(RAAN) * np.sin(arg_per0) - np.sin(RAAN) * np.cos(inc0) * np.cos(arg_per0)) * yp
+                 + np.sin(RAAN) * np.sin(inc0) * zp)
+
+        Y_ECEF = ((np.sin(RAAN) * np.cos(arg_per0) + np.cos(RAAN) * np.cos(inc0) * np.sin(arg_per0)) * xp
+                 + (-np.sin(RAAN) * np.sin(arg_per0) + np.cos(RAAN) * np.cos(inc0) * np.cos(arg_per0)) * yp
+                 - np.cos(RAAN) * np.sin(inc0) * zp)
+
+        Z_ECEF = (np.sin(inc0) * np.sin(arg_per0) * xp
+                 + np.sin(inc0) * np.cos(arg_per0) * yp
+                 + np.cos(inc0) * zp)
+
+        r = np.array([X_ECEF, Y_ECEF, Z_ECEF])
 
         latitude = np.degrees((np.arctan2(r[2], np.sqrt(r[0] ** 2 + r[1] ** 2))))
         longitude = np.degrees((np.arctan2(r[1], r[0])))
@@ -234,6 +249,7 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
     df3 = pd.DataFrame(data, columns=['Data'])
     df = pd.concat([df, df3], axis=1)
 
+
     import numpy as np
     import matplotlib.pyplot as plt
     from mpl_toolkits.basemap import Basemap
@@ -260,6 +276,15 @@ def propagador_orbital(data, semi_eixo, excentricidade, Raan, argumento_perigeu,
     ax.set_zlabel('z [km]')
     plt.show()
     solucao['final'] = 1'''
+
+    '''DF = pd.DataFrame()
+    DF['x'] = df['X_ECI']
+    DF['y'] = df['Y_ECI']
+    DF['z'] = df['Z_ECI']
+    import plotly.express as px
+
+    fig = px.scatter_3d(DF)
+    fig.show()'''
     solucao.to_csv('solver.csv',sep=',')
     df.to_csv('dados_ECI.csv', sep=',')
     return df

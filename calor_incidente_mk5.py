@@ -351,22 +351,22 @@ for i in tqdm(range(0, len(vetor_posicao), 1), colour='green'):
 
                 Halb6 = Halb6 + (As * ((C_aek6 * C_bek * C_aik6) / (np.pi * np.linalg.norm(rhok6) ** 2)) * Balb)
 
-    Qalb1.append(Halb1)
+    Qalb1.append(ai * gama * Is * Halb1)
     Halb1 = 0
 
-    Qalb2.append(Halb2)
+    Qalb2.append(ai * gama * Is * Halb2)
     Halb2 = 0
 
-    Qalb3.append(Halb3)
+    Qalb3.append(ai * gama * Is * Halb3)
     Halb3 = 0
 
-    Qalb4.append(Halb4)
+    Qalb4.append(ai * gama * Is * Halb4)
     Halb4 = 0
 
-    Qalb5.append(Halb5)
+    Qalb5.append(ai * gama * Is * Halb5)
     Halb5 = 0
 
-    Qalb6.append(Halb6)
+    Qalb6.append(ai * gama * Is * Halb6)
     Halb6 = 0
 
 
@@ -489,22 +489,22 @@ for i in tqdm(range(0, len(vetor_posicao), 1), colour='cyan'):
 
                 Hrad6 = Hrad6 + (As * ((C_aek6 * C_aik6) / (np.pi * np.linalg.norm(Rhok6) ** 2)) * Balb)
 
-    Qrad1.append((Hrad1))
+    Qrad1.append(e * Ir * (Hrad1))
     Hrad1 = 0
 
-    Qrad2.append((Hrad2))
+    Qrad2.append(e * Ir * (Hrad2))
     Hrad2 = 0
 
-    Qrad3.append((Hrad3))
+    Qrad3.append(e * Ir * (Hrad3))
     Hrad3 = 0
 
-    Qrad4.append((Hrad4))
+    Qrad4.append(e * Ir * (Hrad4))
     Hrad4 = 0
 
-    Qrad5.append((Hrad5))
+    Qrad5.append(e * Ir * (Hrad5))
     Hrad5 = 0
 
-    Qrad6.append((Hrad6))
+    Qrad6.append(e * Ir * (Hrad6))
     Hrad6 = 0
 
 rad_sol = []
